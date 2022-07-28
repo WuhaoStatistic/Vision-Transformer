@@ -8,3 +8,5 @@ class Config(object):
         self.isTrain = True
         self.fineTuning = False
         self.batch_size = 2
+        self.n_heads = 8
+        self.n_layers = 4

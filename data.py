@@ -8,14 +8,6 @@ from PIL import Image
 from torch.optim import lr_scheduler
 
 
-class Config(object):
-    def __init__(self):
-        self.N = 16
-        self.isTrain = True
-        self.fineTuning = False
-        self.batch_size = 2
-
-
 @torch.no_grad()
 def img2patch(img, patch):
     """
