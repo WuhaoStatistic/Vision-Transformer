@@ -8,7 +8,6 @@ from PIL import Image
 from torch.optim import lr_scheduler
 
 
-@torch.no_grad()
 def img2patch(img, patch):
     """
     img : The input image, need to be numpy array
@@ -22,7 +21,7 @@ def img2patch(img, patch):
     have (224/14)^2 * 3= 768 dimensions.
     So the shape of result is [197*16*16*3]
     """
-    patch = int(patch**(1/2))
+    patch = int(patch ** (1 / 2))
     assert isinstance(img, np.ndarray), 'img should be numpy array'
     assert img.shape[0] % patch == 0 and img.shape[1] % patch == 0, 'H and W should be divisible by patch'
     res = torch.zeros((1, img.shape[0] // patch, img.shape[1] // patch, 3))
@@ -43,10 +42,13 @@ class AttDataset(data.Dataset):
     def __init__(self, name, opt):
         super(AttDataset, self).__init__()
         self.data = pd.read_csv('./' + name)
+        self.label = pd.get_dummies(self.data["label"], prefix='class')
+
         self.opt = opt
 
     def __getitem__(self, index):
-        p, l = self.data.loc[index, :]
+        p, _ = self.data.loc[index, :]
+        l = torch.from_numpy(np.asarray(self.label.loc[index, :]).astype(np.float32))
         p = './train_img/' + p
         p = Image.open(p)
         p = np.array(p.resize(self.opt.img_size))
@@ -68,14 +70,14 @@ def get_dataloader(dataset, opt):
 
 
 def get_optmizer(model, opt):
-    optimizer = torch.optim.SGD(model, lr=opt.lr, nesterov=True, momentum=0.9)
+    optimizer = torch.optim.SGD(model, lr=opt.learning_rate, nesterov=True, momentum=0.9)
     return optimizer
 
 
 def get_scheduler(optimizer, opt):
     if opt.lr_policy == 'linear':
         def lambda_rule(epoch):
-            lr_l = 1.0 - max(0, epoch + opt.epoch_count - opt.n_epochs) / float(opt.n_epochs_decay + 1)
+            lr_l = 1.0 - max(0, epoch - opt.n_epochs) / float(opt.n_epochs_decay + 1)
             return lr_l
 
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)

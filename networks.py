@@ -11,11 +11,12 @@ class Embedding(nn.Module):
         super(Embedding, self).__init__()
         self.W = W
         self.D = D
-        self.cls = torch.rand((1, 1, D))
 
     def forward(self, patches):
+        self.cls = torch.rand((1, 1, self.D))
         res = nn.Linear(self.W, self.D)(patches)
         res = nn.GELU()(res)
+
         self.cls = self.cls.expand(res.shape[0], -1, -1)
         return torch.cat((self.cls, res), 1)
 
@@ -24,11 +25,11 @@ class Transformer(nn.Module):
     def __init__(self, opt):
         super(Transformer, self).__init__()
         self.Embed = Embedding(opt.D1, opt.D2)
-        self.positional = torch.rand(size=(opt.batch_size, opt.N + 1, opt.D2))
+        self.positional = torch.rand(1, opt.N + 1, opt.D2)
         self.encoder_layer = nn.TransformerEncoderLayer(d_model=opt.D2, nhead=opt.n_heads)
         self.transformer_encoder = nn.TransformerEncoder(self.encoder_layer, num_layers=opt.n_layers)
         self.MLPhead = nn.Linear(opt.D2, opt.n_hidden)
-        self.MLPhead2 = nn.Linear(opt.hidden, opt.n_class)
+        self.MLPhead2 = nn.Linear(opt.n_hidden, opt.n_class)
         self.fine_tuning = opt.fine_tuning
 
     def forward(self, x):
@@ -41,3 +42,9 @@ class Transformer(nn.Module):
             x = nn.Tanh()(x)
             x = self.MLPhead2(x)
         return x
+
+
+def loss(res, label, opt):
+
+    loss = nn.CrossEntropyLoss(label_smoothing=opt.label_smoothing)
+    return loss(res, label)
